@@ -57,6 +57,14 @@ $ yarn run test:e2e
 # test coverage
 $ yarn run test:cov
 ```
+## Run docker
+
+```bash
+# run docker
+$ docker compose up -d
+
+```
+
 
 ## Resources
 
