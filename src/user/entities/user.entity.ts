@@ -1,3 +1,4 @@
+import { Exclude } from 'class-transformer';
 import {
   Column,
   CreateDateColumn,
@@ -7,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { ROLE } from '../constants';
 
 @Entity({
   name: 'users',
@@ -25,6 +27,7 @@ export class User {
   @Index({ unique: true })
   email: string;
 
+  @Exclude()
   @Column({
     name: 'password',
     nullable: false,
@@ -38,6 +41,13 @@ export class User {
   })
   name: string;
 
+  @Column({
+    name: 'role_id',
+    nullable: false,
+    default: ROLE.USER,
+  })
+  roleId: number;
+
   @CreateDateColumn({
     name: 'created_at',
   })
@@ -48,6 +58,7 @@ export class User {
   })
   updatedAt: Date;
 
+  @Exclude()
   @DeleteDateColumn({
     name: 'deleted_at',
   })
