@@ -26,7 +26,7 @@ import { UserFindQueryDto } from './dto/user-find-query.dto';
 import { UserService } from './user.service';
 import { User } from './entities/user.entity';
 
-@ApiTags('user')
+@ApiTags('User')
 @Controller('user')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
