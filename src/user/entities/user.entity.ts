@@ -8,7 +8,6 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { ROLE } from '../constants';
 
 @Entity({
   name: 'users',
@@ -40,13 +39,6 @@ export class User {
     nullable: false,
   })
   name: string;
-
-  @Column({
-    name: 'role_id',
-    nullable: false,
-    default: ROLE.USER,
-  })
-  roleId: number;
 
   @CreateDateColumn({
     name: 'created_at',
