@@ -10,13 +10,20 @@ import {
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiTags } from '@nestjs/swagger';
+import { LoginDTO } from './dto/login.dto';
+import { ResponseDTO } from 'src/shared/dto/base.dto';
 
 @Controller('auth')
 @ApiTags('Auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Post('login')
+  @ApiBody({ type: LoginDTO })
+  async login(@Body() data: LoginDTO): Promise<ResponseDTO> {
+    return this.authService.login(data);
+  }
   @Post()
   create(@Body() createAuthDto: CreateAuthDto) {
     return this.authService.create(createAuthDto);
