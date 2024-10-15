@@ -3,23 +3,36 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
+  UseGuards,
+  Inject,
+  BadRequestException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiTags } from '@nestjs/swagger';
+import { RolesGuard } from 'src/shared/guard/roles.guard';
+import { CreateUserDTO } from './dto/create-user.dto';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { Logger } from 'winston';
 
 @Controller('user')
 @ApiTags('Users')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    @Inject(WINSTON_MODULE_NEST_PROVIDER) private readonly logger: Logger,
+  ) {}
 
   @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.create(createUserDto);
+  @UseGuards(RolesGuard)
+  async create(@Body() dto: CreateUserDTO) {
+    try {
+      return await this.userService.create(dto);
+    } catch (e) {
+      this.logger.error(e.message, e.stack, UserController.name);
+      throw new BadRequestException(e.message);
+    }
   }
 
   @Get()
@@ -30,11 +43,6 @@ export class UserController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.userService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(+id, updateUserDto);
   }
 
   @Delete(':id')
