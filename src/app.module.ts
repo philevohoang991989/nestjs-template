@@ -15,6 +15,7 @@ import * as winston from 'winston';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { SharedModule } from './shared/shared.module';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { SharedModule } from './shared/shared.module';
     }),
     AuthModule,
     SharedModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [AppService],
