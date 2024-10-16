@@ -11,6 +11,8 @@ import { MailService } from 'src/mail/mail.service';
 import { ActiveUserDTO } from './dto/active-user.dto';
 import { ERROR_CODE } from 'src/shared/constants/common.constant';
 import { ResponseDTO } from 'src/shared/dto/base.dto';
+import { ChangePasswordDTO } from 'src/auth/dto/change-password.dto';
+import moment from 'moment';
 
 @Injectable()
 export class UserService {
@@ -125,5 +127,67 @@ export class UserService {
 
   remove(id: number) {
     return `This action removes a #${id} user`;
+  }
+  async changePassword(
+    changePassword: ChangePasswordDTO,
+  ): Promise<ResponseDTO> {
+    const isExistedUser = await this.userRepository.findOne({
+      where: {
+        email: changePassword.username.toLocaleLowerCase(),
+      },
+    });
+    if (!isExistedUser) {
+      return {
+        data: undefined,
+        msgSts: {
+          code: ERROR_CODE.NOT_FOUND,
+          message: 'User not found',
+        },
+      };
+    }
+
+    // Compare password
+    if (
+      !(await this.compareHashedPassword(
+        changePassword.oldPassword,
+        isExistedUser.password,
+      ))
+    ) {
+      return {
+        data: undefined,
+        msgSts: {
+          code: ERROR_CODE.OLD_PASSWORD_NOT_MATCH,
+          message: 'Old password not match',
+        },
+      };
+    }
+
+    // New password same as old password
+    if (changePassword.oldPassword === changePassword.newPassword) {
+      return {
+        data: undefined,
+        msgSts: {
+          code: ERROR_CODE.OLD_PASSWORD_SAME_NEW_PASSWORD,
+          message: 'Old password is same as new password',
+        },
+      };
+    }
+
+    isExistedUser.password = await this.hashPassword(
+      changePassword.newPassword,
+    );
+    isExistedUser.blockAt = null;
+    isExistedUser.retryNumber = 0;
+    isExistedUser.expiredIn = moment().add(60, 'day').toDate();
+    const user = await this.userRepository.save(isExistedUser);
+    delete user.password;
+
+    return {
+      data: user,
+      msgSts: {
+        code: ERROR_CODE.SUCCESS,
+        message: 'Change password success',
+      },
+    };
   }
 }

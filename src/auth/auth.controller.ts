@@ -4,6 +4,7 @@ import { CreateAuthDto } from './dto/create-auth.dto';
 import { ApiBody, ApiTags } from '@nestjs/swagger';
 import { LoginDTO } from './dto/login.dto';
 import { ResponseDTO } from 'src/shared/dto/base.dto';
+import { ChangePasswordDTO } from './dto/change-password.dto';
 
 @Controller('auth')
 @ApiTags('Auth')
@@ -18,6 +19,11 @@ export class AuthController {
   @Post()
   create(@Body() createAuthDto: CreateAuthDto) {
     return this.authService.create(createAuthDto);
+  }
+
+  @Post('change-password')
+  async changePassword(@Body() data: ChangePasswordDTO): Promise<ResponseDTO> {
+    return this.authService.changePassword(data);
   }
 
   @Get()

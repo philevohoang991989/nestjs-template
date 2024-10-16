@@ -5,6 +5,8 @@ import { ResponseDTO } from 'src/shared/dto/base.dto';
 import { ERROR_CODE } from 'src/shared/constants/common.constant';
 import { UserService } from 'src/user/user.service';
 import { JwtService } from '@nestjs/jwt';
+import { ChangePasswordDTO } from './dto/change-password.dto';
+import { pattern } from './constants';
 
 @Injectable()
 export class AuthService {
@@ -63,6 +65,19 @@ export class AuthService {
     }
 
     return null;
+  }
+  async changePassword(data: ChangePasswordDTO): Promise<ResponseDTO> {
+    if (!pattern.test(data.newPassword)) {
+      return {
+        data: undefined,
+        msgSts: {
+          code: ERROR_CODE.NOT_FOUND,
+          message:
+            'Password length must be at least 8 characters, letters, numbers and special characters.',
+        },
+      };
+    }
+    return await this.userService.changePassword(data);
   }
   findAll() {
     return `This action returns all auth`;
