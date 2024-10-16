@@ -58,6 +58,13 @@ $ yarn run test:e2e
 $ yarn run test:cov
 ```
 
+## Run DOCKER
+
+```bash
+# RUN docker
+$ docker compose up -d
+```
+
 ## Resources
 
 Check out a few resources that may come in handy when working with NestJS:
