@@ -30,7 +30,6 @@ export class UserController {
     try {
       return await this.userService.create(dto);
     } catch (e) {
-      this.logger.error(e.message, e.stack, UserController.name);
       throw new BadRequestException(e.message);
     }
   }

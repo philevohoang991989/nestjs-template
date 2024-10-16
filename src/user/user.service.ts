@@ -33,6 +33,13 @@ export class UserService {
 
     return user;
   }
+  async findByEmail(username: string): Promise<User> {
+    return this.userRepository.findOne({
+      where: {
+        email: username,
+      },
+    });
+  }
 
   findAll() {
     return `This action returns all user`;

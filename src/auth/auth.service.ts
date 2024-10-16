@@ -3,11 +3,13 @@ import { CreateAuthDto } from './dto/create-auth.dto';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { ResponseDTO } from 'src/shared/dto/base.dto';
 import { ERROR_CODE } from 'src/shared/constants/common.constant';
+import { UserService } from 'src/user/user.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     @Inject(WINSTON_MODULE_NEST_PROVIDER) private readonly logger: Logger,
+    private userService: UserService,
   ) {}
 
   async login({ username, password }): Promise<ResponseDTO> {
@@ -16,6 +18,8 @@ export class AuthService {
       `Username: ${username}, Password: ${password}`,
       'PROFILING',
     );
+    const user = await this.userService.findByEmail(username.trim());
+    this.logger.debug(user, 'PROFILING');
     this.logger.log('End process Login', 'PROFILING');
     return new ResponseDTO({
       data: {
