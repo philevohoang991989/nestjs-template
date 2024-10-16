@@ -33,6 +33,10 @@ export class AuthService {
     return new ResponseDTO({
       data: {
         access_token: await this.jwtService.signAsync(payload),
+        name: user.name,
+        email: user.email,
+        username: user.username,
+        role: user.roleId,
       },
       msgSts: {
         message: 'Login success',
