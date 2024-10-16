@@ -7,11 +7,13 @@ import { CreateUserDTO } from './dto/create-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
+import { MailService } from 'src/mail/mail.service';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User) private userRepository: Repository<User>,
+    private readonly mailService: MailService,
     private readonly configService: ConfigService,
   ) {}
   async hashPassword(plainPassword: string) {
@@ -23,13 +25,13 @@ export class UserService {
 
     const user = await this.userRepository.save(toCreateUser);
 
-    // const loginUrl = `${this.configService.get('APP_URL')}/login`;
+    const loginUrl = `${this.configService.get('APP_URL')}/login`;
 
-    // this.mailService.sendWelcomeEmail(
-    //   loginUrl,
-    //   user.email,
-    //   createUserDto.password,
-    // );
+    this.mailService.sendWelcomeEmail(
+      loginUrl,
+      user.email,
+      createUserDto.password,
+    );
 
     return user;
   }
