@@ -12,7 +12,7 @@ import { ActiveUserDTO } from './dto/active-user.dto';
 import { ERROR_CODE } from 'src/shared/constants/common.constant';
 import { ResponseDTO } from 'src/shared/dto/base.dto';
 import { ChangePasswordDTO } from 'src/auth/dto/change-password.dto';
-import moment from 'moment';
+import * as moment from 'moment';
 
 @Injectable()
 export class UserService {
@@ -132,9 +132,10 @@ export class UserService {
     changePassword: ChangePasswordDTO,
   ): Promise<ResponseDTO> {
     const isExistedUser = await this.userRepository.findOne({
-      where: {
-        email: changePassword.username.toLocaleLowerCase(),
-      },
+      where: [
+        { email: changePassword.username.toLocaleLowerCase() },
+        { username: changePassword.username.toLocaleLowerCase() },
+      ],
     });
     if (!isExistedUser) {
       return {
