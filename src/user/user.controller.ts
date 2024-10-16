@@ -18,7 +18,6 @@ import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { JwtAuthGuard } from 'src/shared/guard/jwt.guard';
 import { ActiveUserDTO } from './dto/active-user.dto';
-import { User } from './entities/user.entity';
 import { ResponseDTO } from 'src/shared/dto/base.dto';
 
 @Controller('user')
