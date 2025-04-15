@@ -1,22 +1,22 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import appConfig from './shared/config/app.config';
-import loggingConfig from './shared/config/logging.config';
-import swaggerConfig from './shared/config/swagger.config';
-import databaseConfig from './shared/config/database.config';
-import jwtConfig from './shared/config/jwt.config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   WinstonModule,
   utilities as nestWinstonModuleUtilities,
 } from 'nest-winston';
 import * as winston from 'winston';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { MailModule } from './mail/mail.module';
+import appConfig from './shared/config/app.config';
+import databaseConfig from './shared/config/database.config';
+import jwtConfig from './shared/config/jwt.config';
+import loggingConfig from './shared/config/logging.config';
+import swaggerConfig from './shared/config/swagger.config';
 import { SharedModule } from './shared/shared.module';
 import { UserModule } from './user/user.module';
-import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -56,7 +56,7 @@ import { MailModule } from './mail/mail.module';
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        ...configService.get('database'),
+        ...(await configService.get('database')),
       }),
     }),
     AuthModule,

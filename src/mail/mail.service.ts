@@ -1,12 +1,12 @@
-import { Inject, Injectable } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
+import { Inject, Injectable } from '@nestjs/common';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
 @Injectable()
 export class MailService {
   constructor(
-    private mailerService: MailerService,
+    private readonly mailerService: MailerService,
     @Inject(WINSTON_MODULE_NEST_PROVIDER) private readonly logger: Logger,
   ) {}
   sendWelcomeEmail(loginUrl: string, email: string, password: string) {
@@ -15,7 +15,7 @@ export class MailService {
       .sendMail({
         to: email,
         subject: 'Account Information Notification',
-        template: `./welcome-en.hbs`,
+        template: `./welcome.hbs`,
         context: {
           loginUrl,
           email,

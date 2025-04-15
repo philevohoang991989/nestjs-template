@@ -1,24 +1,23 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-  Delete,
-  UseGuards,
-  Inject,
   BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Inject,
+  Param,
+  Post,
   Put,
+  UseGuards,
 } from '@nestjs/common';
-import { UserService } from './user.service';
 import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
-import { RolesGuard } from 'src/shared/guard/roles.guard';
-import { CreateUserDTO } from './dto/create-user.dto';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
-import { Logger } from 'winston';
-import { JwtAuthGuard } from 'src/shared/guard/jwt.guard';
-import { ActiveUserDTO } from './dto/active-user.dto';
 import { ResponseDTO } from 'src/shared/dto/base.dto';
+import { JwtAuthGuard } from 'src/shared/guard/jwt.guard';
+import { Logger } from 'winston';
+import { ActiveUserDTO } from './dto/active-user.dto';
+import { CreateUserDTO } from './dto/create-user.dto';
+import { UserService } from './user.service';
 
 @Controller('user')
 @ApiTags('Users')
@@ -31,7 +30,7 @@ export class UserController {
   ) {}
 
   @Post()
-  @UseGuards(RolesGuard)
+  // @UseGuards(RolesGuard)
   async create(@Body() dto: CreateUserDTO) {
     try {
       return await this.userService.create(dto);
