@@ -7,13 +7,11 @@ import {
   Inject,
   Param,
   Post,
-  Put,
-  UseGuards,
+  Put
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiParam, ApiTags } from '@nestjs/swagger';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { ResponseDTO } from 'src/shared/dto/base.dto';
-import { JwtAuthGuard } from 'src/shared/guard/jwt.guard';
 import { Logger } from 'winston';
 import { ActiveUserDTO } from './dto/active-user.dto';
 import { CreateUserDTO } from './dto/create-user.dto';
@@ -21,8 +19,8 @@ import { UserService } from './user.service';
 
 @Controller('user')
 @ApiTags('Users')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+// @ApiBearerAuth()
+// @UseGuards(JwtAuthGuard)
 export class UserController {
   constructor(
     private readonly userService: UserService,
