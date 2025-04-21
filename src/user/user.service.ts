@@ -71,7 +71,7 @@ export class UserService {
       user.email,
       createUserDto.password,
     );
-    // Remove sensitive data
+
     delete user.password;
     delete user.resetToken;
     return {

@@ -23,6 +23,7 @@ export class MailService {
         },
       })
       .then(() => {
+        this.logger.debug(`Welcome email sent to ${email}`);
         return true;
       })
       .catch((e) => {
