@@ -1,12 +1,12 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
-// import { UpdateUserDto } from './dto/update-user.dto';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as bcrypt from 'bcrypt';
 import * as moment from 'moment';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { ChangePasswordDTO } from 'src/auth/dto/change-password.dto';
+import { ResetPasswordDTO } from 'src/auth/dto/reset-password.dto';
 import { MailService } from 'src/mail/mail.service';
 import { ERROR_CODE, UserRole } from 'src/shared/constants/common.constant';
 import { ResponseDTO } from 'src/shared/dto/base.dto';
@@ -263,6 +263,38 @@ export class UserService {
       msgSts: {
         code: ERROR_CODE.SUCCESS,
         message: 'Change password success',
+      },
+    };
+  }
+  async resetPassword(resetPassword: ResetPasswordDTO): Promise<ResponseDTO> {
+    const isExistedUser = await this.userRepository.findOne({
+      where: {
+        username: resetPassword.username.toLocaleLowerCase(),
+      },
+    });
+    if (!isExistedUser) {
+      return {
+        data: undefined,
+        msgSts: {
+          code: ERROR_CODE.NOT_FOUND,
+          message: 'Username is existed',
+        },
+      };
+    }
+
+    isExistedUser.password = await this.hashPassword(resetPassword.newPassword);
+    isExistedUser.resetToken = null;
+    isExistedUser.retryNumber = 0;
+    isExistedUser.blockAt = null;
+    isExistedUser.expiredIn = moment().add(60, 'day').toDate();
+    const user = await this.userRepository.save(isExistedUser);
+    delete user.password;
+
+    return {
+      data: user,
+      msgSts: {
+        code: ERROR_CODE.SUCCESS,
+        message: 'Reset password success',
       },
     };
   }

@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { ApiBody, ApiTags } from '@nestjs/swagger';
-import { LoginDTO } from './dto/login.dto';
+import { Body, Controller, Param, Post } from '@nestjs/common';
+import { ApiBody, ApiParam, ApiTags } from '@nestjs/swagger';
 import { ResponseDTO } from 'src/shared/dto/base.dto';
+import { AuthService } from './auth.service';
+import { ActiveAccountDTO } from './dto/active-account';
 import { ChangePasswordDTO } from './dto/change-password.dto';
+import { LoginDTO } from './dto/login.dto';
+import { ResetPasswordDTO } from './dto/reset-password.dto';
 
 @Controller('auth')
 @ApiTags('Auth')
@@ -16,9 +17,18 @@ export class AuthController {
   async login(@Body() data: LoginDTO): Promise<ResponseDTO> {
     return this.authService.login(data);
   }
-  @Post()
-  create(@Body() createAuthDto: CreateAuthDto) {
-    return this.authService.create(createAuthDto);
+
+  @Post('request-reset-password/:email/:language')
+  @ApiParam({ name: 'email' })
+  async requestResetPassword(
+    @Param('email') email: string,
+  ): Promise<ResponseDTO> {
+    return this.authService.requestResetPassword(email, 'VN');
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() data: ResetPasswordDTO): Promise<ResponseDTO> {
+    return this.authService.resetPassword(data);
   }
 
   @Post('change-password')
@@ -26,23 +36,8 @@ export class AuthController {
     return this.authService.changePassword(data);
   }
 
-  @Get()
-  findAll() {
-    return this.authService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.authService.findOne(+id);
-  }
-
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateAuthDto: any) {
-  //   return this.authService.update(+id, updateAuthDto);
-  // }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.authService.remove(+id);
+  @Post('active-account')
+  async activeAccount(@Body() dto: ActiveAccountDTO): Promise<ResponseDTO> {
+    return this.authService.changePasswordFirstLogin(dto);
   }
 }

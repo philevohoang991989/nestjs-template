@@ -1,16 +1,19 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as moment from 'moment';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { MailService } from 'src/mail/mail.service';
 import { ERROR_CODE } from 'src/shared/constants/common.constant';
 import { ResponseDTO } from 'src/shared/dto/base.dto';
 import { User } from 'src/user/entities/user.entity';
 import { UserService } from 'src/user/user.service';
 import { Repository } from 'typeorm';
 import { pattern } from './constants';
+import { ActiveAccountDTO } from './dto/active-account';
 import { ChangePasswordDTO } from './dto/change-password.dto';
-import { CreateAuthDto } from './dto/create-auth.dto';
+import { ResetPasswordDTO } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +22,8 @@ export class AuthService {
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    private readonly mailService: MailService,
   ) {}
 
   async login({ username, password }): Promise<ResponseDTO> {
@@ -124,10 +129,7 @@ export class AuthService {
       },
     });
   }
-  create(createAuthDto: CreateAuthDto) {
-    this.logger.log('Starting process Create', createAuthDto);
-    return 'This action adds a new auth';
-  }
+
   async validateUser(email: string, plainPassword: string): Promise<any> {
     const user = await this.userService.findByEmail(email);
     if (
@@ -157,19 +159,200 @@ export class AuthService {
     }
     return await this.userService.changePassword(data);
   }
-  findAll() {
-    return `This action returns all auth`;
+
+  async changePasswordFirstLogin(dto: ActiveAccountDTO): Promise<ResponseDTO> {
+    // Decode token
+    const decodeToken = this.jwtService.decode(dto.resetToken);
+    const username = decodeToken['username'];
+    const user = await this.userService.findByEmail(username);
+    // User not found
+    if (!user) {
+      return {
+        data: undefined,
+        msgSts: {
+          code: ERROR_CODE.NOT_FOUND,
+          message: 'User not found',
+        },
+      };
+    }
+
+    // Check reset token is valid
+    if (user.resetToken !== dto.resetToken) {
+      return {
+        data: undefined,
+        msgSts: {
+          code: ERROR_CODE.TOKEN_INVALID,
+          message: 'Reset token is invalid',
+        },
+      };
+    }
+
+    // Check reset token is not expired
+    if (decodeToken['exp'] * 1000 <= new Date().getTime()) {
+      return {
+        data: undefined,
+        msgSts: {
+          code: ERROR_CODE.TOKEN_EXPIRED,
+          message: 'Token expired',
+        },
+      };
+    }
+
+    // Check password is valid
+    if (user.password !== dto.oldPassword) {
+      return {
+        data: undefined,
+        msgSts: {
+          code: ERROR_CODE.OLD_PASSWORD_NOT_MATCH,
+          message: 'Password not match',
+        },
+      };
+    }
+
+    // Hash password
+    user.password = await this.userService.hashPassword(dto.newPassword);
+    user.isFirstLogin = false;
+    user.blockAt = null;
+    user.resetToken = null;
+    user.isActive = true;
+    user.expiredIn = moment().add(60, 'day').toDate();
+
+    const updateUser = await this.userRepository.save(user);
+    delete updateUser.password;
+    return {
+      data: updateUser,
+      msgSts: {
+        code: ERROR_CODE.SUCCESS,
+        message: 'Reset password success',
+      },
+    };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
+  async requestResetPassword(
+    username: string,
+    language: string,
+  ): Promise<ResponseDTO> {
+    const user = await this.validateUsername(username);
+    if (!user) {
+      return {
+        data: undefined,
+        msgSts: {
+          message: 'User not found',
+          code: ERROR_CODE.USER_NOT_FOUND,
+        },
+      };
+    }
+
+    // Generate token: email
+    const payload = {
+      username: user.username,
+      userId: user.id,
+    };
+    // Send email with reset_token
+    const reset_token = this.jwtService.sign(payload, {
+      expiresIn: '48h',
+    });
+    const link = `${this.configService.get('DOMAIN_URL')}/reset-password?token=${reset_token}`;
+    const rs = await this.mailService.sendResetPassEmail(
+      link,
+      username,
+      language,
+      user.name,
+    );
+    if (rs) {
+      // Save reset token
+      await this.userService.update(user.id, { resetToken: reset_token });
+      return {
+        data: undefined,
+        msgSts: {
+          message: 'Request reset password success',
+          code: ERROR_CODE.SUCCESS,
+        },
+      };
+    } else {
+      return {
+        data: undefined,
+        msgSts: {
+          message: 'Request reset password failed: Email does not work',
+          code: ERROR_CODE.EMAIL_DOES_NOT_WORK,
+        },
+      };
+    }
   }
 
-  update(id: number) {
-    return `This action updates a #${id} auth`;
+  async resetPassword(data: ResetPasswordDTO): Promise<ResponseDTO> {
+    if (!pattern.test(data.newPassword)) {
+      return {
+        data: undefined,
+        msgSts: {
+          code: ERROR_CODE.NOT_FOUND,
+          message:
+            'Password length must be at least 8 characters, letters, numbers and special characters.',
+        },
+      };
+    }
+
+    if (!data.resetToken) {
+      return {
+        data: undefined,
+        msgSts: {
+          code: ERROR_CODE.TOKEN_NOT_FOUND,
+          message: 'Token not found',
+        },
+      };
+    }
+
+    const decodeToken = this.jwtService.decode(data.resetToken);
+    const username = decodeToken['username'];
+    // const dataSaveAudit = new ChangePasswordDTO();
+    // dataSaveAudit.username = username;
+    // dataSaveAudit.newPassword = data.newPassword;
+    // await this.saveAudit(dataSaveAudit);
+
+    const user = await this.userService.findByEmail(username);
+    // User not found
+    if (!user) {
+      return {
+        data: undefined,
+        msgSts: {
+          code: ERROR_CODE.NOT_FOUND,
+          message: 'User not found',
+        },
+      };
+    }
+
+    // Token invalid
+    if (user.resetToken !== data.resetToken) {
+      return {
+        data: undefined,
+        msgSts: {
+          code: ERROR_CODE.TOKEN_INVALID,
+          message: 'Token invalid',
+        },
+      };
+    }
+
+    //Token expired
+    if (decodeToken['exp'] * 1000 <= new Date().getTime()) {
+      return {
+        data: undefined,
+        msgSts: {
+          code: ERROR_CODE.TOKEN_EXPIRED,
+          message: 'Token expired',
+        },
+      };
+    }
+
+    data.username = username;
+    return await this.userService.resetPassword(data);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+  private async validateUsername(username: string): Promise<User> {
+    const user = await this.userService.findByEmail(username);
+    if (user) {
+      delete user.password;
+      return user;
+    }
+    return null;
   }
 }
