@@ -12,7 +12,4 @@ export class CreateUserRoleDTO {
 
   @ApiProperty()
   isActive: boolean;
-
-  @ApiProperty()
-  userId: number;
 }

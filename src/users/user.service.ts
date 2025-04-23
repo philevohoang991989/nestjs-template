@@ -397,7 +397,7 @@ export class UserService {
     });
 
     const groupByScreen = results.reduce(function (r, a) {
-      r[a.screen] = r[a.screen] || [];
+      r[a.screen] = r[a.screen] ?? [];
       r[a.screen].push(a);
       return r;
     }, Object.create(null));
@@ -413,12 +413,12 @@ export class UserService {
   async findRole(filters: CreateUserRoleDTO) {
     return await this.userRoleRepository
       .createQueryBuilder('user_role')
-      .andWhere('user_role.screen = :screen', {
-        screen: filters.screen,
-      })
-      .andWhere('user_role.manipulation = :manipulation', {
-        manipulation: filters.manipulation,
-      })
+      // .andWhere('user_role.screen = :screen', {
+      //   screen: filters.screen,
+      // })
+      // .andWhere('user_role.manipulation = :manipulation', {
+      //   manipulation: filters.manipulation,
+      // })
       .andWhere('user_role.role = :role', {
         role: filters.role,
       })
@@ -447,7 +447,7 @@ export class UserService {
     });
 
     const groupByScreen = results.reduce(function (r, a) {
-      r[a.screen] = r[a.screen] || [];
+      r[a.screen] = r[a.screen] ?? [];
       r[a.screen].push(a);
       return r;
     }, Object.create(null));
@@ -478,7 +478,7 @@ export class UserService {
   }
 
   async role(filters: CreateUserRoleDTO) {
-    this.logger.log(filters?.role, 'ROLE_NAME');
+    this.logger.debug(filters, 'ROLE_CREATE');
     if (!filters?.role) {
       throw new BadRequestException('Role name is required');
     }
@@ -496,24 +496,22 @@ export class UserService {
     return role;
   }
 
-  async createRole(dto: CreateUserRoleDTO): Promise<ResponseDTO> {
+  async createRole(dtos: CreateUserRoleDTO[]): Promise<ResponseDTO> {
     const userRoles = [];
-    this.logger.log(dto, 'ROLE');
-    const userRole = new UserRoles();
-    const role = await this.role(dto);
-    const userRoleData = await this.findRole(dto);
-
-    if (userRoleData?.id) {
-      userRole.id = userRoleData.id;
+    for (const dto of dtos) {
+      const userRole = new UserRoles();
+      const role = await this.role(dto);
+      const userRoleData = await this.findRole(dto);
+      if (userRoleData?.id) {
+        userRole.id = userRoleData.id;
+      }
+      userRole.roleId = role.id;
+      userRole.screen = dto.screen;
+      userRole.manipulation = dto.manipulation;
+      userRole.role = dto.role;
+      userRole.isActive = dto.isActive;
+      userRoles.push(userRole);
     }
-
-    userRole.roleId = role.id;
-    userRole.screen = dto.screen;
-    userRole.manipulation = dto.manipulation;
-    userRole.role = dto.role;
-    userRole.isActive = dto.isActive;
-
-    userRoles.push(userRole);
 
     const payload = await this.userRoleRepository.save(userRoles);
     return {
@@ -532,6 +530,67 @@ export class UserService {
       msgSts: {
         code: ERROR_CODE.SUCCESS,
         message: 'Get user success',
+      },
+    };
+  }
+  async findRoleSingle(filters: CreateUserRoleDTO, id: number) {
+    return await this.userRoleSingleRepository
+      .createQueryBuilder('user_role_single')
+      .andWhere('user_role_single.screen = :screen', {
+        screen: filters.screen,
+      })
+      .andWhere('user_role_single.manipulation = :manipulation', {
+        manipulation: filters.manipulation,
+      })
+      .andWhere('user_role_single.role = :role', {
+        role: filters.role,
+      })
+      .andWhere('user_role_single.userId = :userId', {
+        userId: id,
+      })
+      .getOne();
+  }
+  async createRoleSingle(id: number, dtos: any): Promise<ResponseDTO> {
+    const updateRole = await this.findRoleUserSingle(id);
+    const role = await this.roleRepository.findOne({
+      where: {
+        id: dtos.dataRoleSend[0].role,
+      },
+    });
+    if (
+      updateRole &&
+      updateRole.length > 0 &&
+      updateRole[0].role != role.name
+    ) {
+      for (const role of updateRole) {
+        console.log(role);
+
+        await this.userRoleSingleRepository.softDelete(role.id);
+      }
+    }
+    const userRoles = [];
+    for (const dto of dtos.dataRoleSend) {
+      dto.role = role.name;
+      const userRoleSingle = new UserRoleSingle();
+      const userRoleData = await this.findRoleSingle(dto, id);
+      if (userRoleData?.id) {
+        userRoleSingle.id = userRoleData.id;
+      }
+      userRoleSingle.roleId = role.id;
+      userRoleSingle.screen = dto.screen;
+      userRoleSingle.manipulation = dto.manipulation;
+      userRoleSingle.role = role.name;
+      userRoleSingle.isActive = dto.isActive;
+      userRoleSingle.userId = id;
+      userRoles.push(userRoleSingle);
+    }
+
+    const payload = await this.userRoleSingleRepository.save(userRoles);
+    return {
+      data: payload,
+      msgSts: {
+        code: ERROR_CODE.SUCCESS,
+        message: 'Create location success',
       },
     };
   }

@@ -88,13 +88,22 @@ export class UserController {
   }
 
   @Post('create-role')
-  async createRole(@Body() dto: CreateUserRoleDTO): Promise<ResponseDTO> {
-    return this.userService.createRole(dto);
+  async createRole(@Body() dtos: CreateUserRoleDTO[]): Promise<ResponseDTO> {
+    return this.userService.createRole(dtos);
   }
 
   @Get('pagination-role-user/:id')
   @ApiParam({ name: 'id' })
   async paginationRoleUser(@Param('id') id: number): Promise<ResponseDTO> {
     return this.userService.paginationRoleUser(id);
+  }
+
+  @Post('create-role-single/:id')
+  @ApiParam({ name: 'id' })
+  async createRoleSingle(
+    @Param('id') id: number,
+    @Body() dto: CreateUserRoleDTO[],
+  ): Promise<ResponseDTO> {
+    return this.userService.createRoleSingle(id, dto);
   }
 }
