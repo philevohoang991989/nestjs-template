@@ -1,4 +1,9 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -10,19 +15,30 @@ import { ResetPasswordDTO } from 'src/auth/dto/reset-password.dto';
 import { MailService } from 'src/mail/mail.service';
 import { ERROR_CODE, UserRole } from 'src/shared/constants/common.constant';
 import { ResponseDTO } from 'src/shared/dto/base.dto';
-import { Repository } from 'typeorm';
+import { FindQueryDto } from 'src/shared/dto/find-query.dto';
+import { Pagination } from 'src/shared/dto/pagination.dto';
+import { getOrderByClause } from 'src/shared/helpers/query-sort.helper';
+import { Brackets, Repository } from 'typeorm';
 import { ActiveUserDTO } from './dto/active-user.dto';
+import { CreateUserRoleDTO } from './dto/create-user-role.dto';
 import { CreateUserDTO } from './dto/create-user.dto';
 import { UpdateUserDTO } from './dto/update-user.dto';
+import { FilterUserDTO } from './dto/user-filter.dto';
 import { Role } from './entities/role.entity';
 import { User } from './entities/user.entity';
+import { UserRoles } from './entities/userRole.entity';
+import { UserRoleSingle } from './entities/userRoleSingle.entity';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(Role) private readonly roleRepository: Repository<Role>,
     @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(UserRoles)
+    private readonly userRoleRepository: Repository<UserRoles>,
     @Inject(WINSTON_MODULE_NEST_PROVIDER) private readonly logger: Logger,
+    @InjectRepository(UserRoleSingle)
+    private readonly userRoleSingleRepository: Repository<UserRoleSingle>,
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
@@ -30,6 +46,56 @@ export class UserService {
   async hashPassword(plainPassword: string) {
     return await bcrypt.hash(plainPassword, 10);
   }
+
+  async pagination(
+    filters: FilterUserDTO,
+    query?: FindQueryDto,
+  ): Promise<ResponseDTO> {
+    const qb = this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role');
+
+    if (filters.keyword) {
+      qb.andWhere(
+        new Brackets((sqb) => {
+          sqb
+            .where('user.name ILIKE :keyword', {
+              keyword: `%${filters.keyword}%`,
+            })
+            .orWhere('user.username ILIKE :keyword');
+        }),
+      );
+    }
+
+    if (filters.role) {
+      qb.andWhere('user.role = :role', { role: filters.role });
+    }
+
+    if (query.sort) {
+      qb.orderBy(getOrderByClause(query.sort));
+    } else {
+      qb.orderBy('user.id', 'DESC');
+    }
+
+    const results = await qb
+      .skip(+query.limit * (+query.page - 1))
+      .take(+query.limit)
+      .getManyAndCount();
+    const payload = new Pagination(results);
+
+    for (const user of payload.items) {
+      user['roleUsers'] = await this.findRoleUserSingle(user.id);
+    }
+
+    return {
+      data: payload,
+      msgSts: {
+        code: ERROR_CODE.SUCCESS,
+        message: 'Get user success',
+      },
+    };
+  }
+
   async create(createUserDto: CreateUserDTO): Promise<ResponseDTO> {
     const isExistedUser = await this.userRepository.findOne({
       where: {
@@ -81,6 +147,15 @@ export class UserService {
         message: 'Register success',
       },
     };
+  }
+
+  async findRoleUserSingle(id: number) {
+    return await this.userRoleSingleRepository
+      .createQueryBuilder('user_role_single')
+      .andWhere('user_role_single.userId = :userId', {
+        userId: id,
+      })
+      .getMany();
   }
 
   async findByEmail(username: string): Promise<User> {
@@ -295,6 +370,168 @@ export class UserService {
       msgSts: {
         code: ERROR_CODE.SUCCESS,
         message: 'Reset password success',
+      },
+    };
+  }
+
+  async paginationRole(query?: FindQueryDto): Promise<ResponseDTO> {
+    const qb = this.userRoleRepository.createQueryBuilder('user_role');
+    if (query.sort) {
+      qb.orderBy(getOrderByClause(query.sort));
+    } else {
+      qb.orderBy('user_role.id', 'ASC');
+    }
+
+    const results = await qb.getMany();
+
+    const roles = results.filter(
+      (value, index, self) =>
+        index === self.findIndex((t) => t.role === value.role),
+    );
+
+    const listRole = roles.map((currElement, index) => {
+      return {
+        id: index,
+        name: currElement.role,
+      };
+    });
+
+    const groupByScreen = results.reduce(function (r, a) {
+      r[a.screen] = r[a.screen] || [];
+      r[a.screen].push(a);
+      return r;
+    }, Object.create(null));
+
+    return {
+      data: { listRole, groupByScreen },
+      msgSts: {
+        code: ERROR_CODE.SUCCESS,
+        message: 'Get user success',
+      },
+    };
+  }
+  async findRole(filters: CreateUserRoleDTO) {
+    return await this.userRoleRepository
+      .createQueryBuilder('user_role')
+      .andWhere('user_role.screen = :screen', {
+        screen: filters.screen,
+      })
+      .andWhere('user_role.manipulation = :manipulation', {
+        manipulation: filters.manipulation,
+      })
+      .andWhere('user_role.role = :role', {
+        role: filters.role,
+      })
+      .getOne();
+  }
+
+  async paginationRoleGroup(id: number): Promise<ResponseDTO> {
+    const results = await this.userRoleRepository
+      .createQueryBuilder('user_role')
+      .andWhere('user_role.roleId = :roleId', {
+        roleId: id,
+      })
+      .orderBy('user_role.id', 'ASC')
+      .getMany();
+
+    const roles = results.filter(
+      (value, index, self) =>
+        index === self.findIndex((t) => t.role === value.role),
+    );
+
+    const listRole = roles.map((currElement, index) => {
+      return {
+        id: index,
+        name: currElement.role,
+      };
+    });
+
+    const groupByScreen = results.reduce(function (r, a) {
+      r[a.screen] = r[a.screen] || [];
+      r[a.screen].push(a);
+      return r;
+    }, Object.create(null));
+
+    return {
+      data: { listRole, groupByScreen },
+      msgSts: {
+        code: ERROR_CODE.SUCCESS,
+        message: 'Get user success',
+      },
+    };
+  }
+
+  async listRole(): Promise<ResponseDTO> {
+    const qb = this.roleRepository
+      .createQueryBuilder('role')
+      .orderBy('role.id', 'ASC');
+
+    const results = await qb.getMany();
+
+    return {
+      data: results,
+      msgSts: {
+        code: ERROR_CODE.SUCCESS,
+        message: 'Get user success',
+      },
+    };
+  }
+
+  async role(filters: CreateUserRoleDTO) {
+    this.logger.log(filters?.role, 'ROLE_NAME');
+    if (!filters?.role) {
+      throw new BadRequestException('Role name is required');
+    }
+
+    let role = await this.roleRepository.findOne({
+      where: { name: filters.role },
+    });
+
+    if (!role) {
+      role = this.roleRepository.create({ name: filters.role });
+
+      role = await this.roleRepository.save(role);
+    }
+
+    return role;
+  }
+
+  async createRole(dto: CreateUserRoleDTO): Promise<ResponseDTO> {
+    const userRoles = [];
+    this.logger.log(dto, 'ROLE');
+    const userRole = new UserRoles();
+    const role = await this.role(dto);
+    const userRoleData = await this.findRole(dto);
+
+    if (userRoleData?.id) {
+      userRole.id = userRoleData.id;
+    }
+
+    userRole.roleId = role.id;
+    userRole.screen = dto.screen;
+    userRole.manipulation = dto.manipulation;
+    userRole.role = dto.role;
+    userRole.isActive = dto.isActive;
+
+    userRoles.push(userRole);
+
+    const payload = await this.userRoleRepository.save(userRoles);
+    return {
+      data: payload,
+      msgSts: {
+        code: ERROR_CODE.SUCCESS,
+        message: 'Create location success',
+      },
+    };
+  }
+  async paginationRoleUser(id): Promise<ResponseDTO> {
+    const results = await this.findRoleUserSingle(id);
+
+    return {
+      data: results,
+      msgSts: {
+        code: ERROR_CODE.SUCCESS,
+        message: 'Get user success',
       },
     };
   }

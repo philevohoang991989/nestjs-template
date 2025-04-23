@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
-  WinstonModule,
-  utilities as nestWinstonModuleUtilities,
+    WinstonModule,
+    utilities as nestWinstonModuleUtilities,
 } from 'nest-winston';
 import * as winston from 'winston';
 import { AppController } from './app.controller';
@@ -16,7 +16,7 @@ import jwtConfig from './shared/config/jwt.config';
 import loggingConfig from './shared/config/logging.config';
 import swaggerConfig from './shared/config/swagger.config';
 import { SharedModule } from './shared/shared.module';
-import { UserModule } from './user/user.module';
+import { UserModule } from './users/user.module';
 
 @Module({
   imports: [

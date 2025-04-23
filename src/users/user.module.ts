@@ -6,12 +6,13 @@ import { MailModule } from 'src/mail/mail.module';
 import { Role } from './entities/role.entity';
 import { User } from './entities/user.entity';
 import { UserRoles } from './entities/userRole.entity';
+import { UserRoleSingle } from './entities/userRoleSingle.entity';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, UserRoles, Role]),
+    TypeOrmModule.forFeature([User, UserRoles, Role, UserRoleSingle]),
     ConfigModule,
     JwtModule.register({
       secret:

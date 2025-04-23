@@ -1,6 +1,12 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { BaseEntity } from 'src/shared/entity/base.entity';
-import { ROLE } from '../constants';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { Role } from './role.entity';
 
 @Entity({
   name: 'users',
@@ -29,12 +35,12 @@ export class User extends BaseEntity {
   })
   name: string;
 
-  @Column({
-    name: 'role_id',
-    nullable: false,
-    default: ROLE.USER,
-  })
+  @Column({ name: 'role', nullable: true })
   roleId: number;
+
+  @ManyToOne(() => Role)
+  @JoinColumn({ name: 'role' })
+  role: Role;
 
   @Column({
     name: 'reset_token',

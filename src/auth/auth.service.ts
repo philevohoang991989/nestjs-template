@@ -7,8 +7,10 @@ import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { MailService } from 'src/mail/mail.service';
 import { ERROR_CODE } from 'src/shared/constants/common.constant';
 import { ResponseDTO } from 'src/shared/dto/base.dto';
-import { User } from 'src/user/entities/user.entity';
-import { UserService } from 'src/user/user.service';
+import { Role } from 'src/users/entities/role.entity';
+import { User } from 'src/users/entities/user.entity';
+import { UserRoleSingle } from 'src/users/entities/userRoleSingle.entity';
+import { UserService } from 'src/users/user.service';
 import { Repository } from 'typeorm';
 import { pattern } from './constants';
 import { ActiveAccountDTO } from './dto/active-account';
@@ -20,6 +22,9 @@ export class AuthService {
   constructor(
     @Inject(WINSTON_MODULE_NEST_PROVIDER) private readonly logger: Logger,
     @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(Role) private readonly roleRepository: Repository<Role>,
+    @InjectRepository(UserRoleSingle)
+    private readonly userRoleSingleRepository: Repository<UserRoleSingle>,
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
@@ -103,6 +108,8 @@ export class AuthService {
         },
       };
     }
+    retryNumber = 0;
+    await this.userService.update(user.id, { retryNumber: retryNumber });
 
     // Prepare payload if user exists
     const payload = {
@@ -114,6 +121,11 @@ export class AuthService {
     this.logger.debug(user, 'PROFILING');
     this.logger.log('End process Login', 'PROFILING');
 
+    const roleUsers = await this.findRoleSingle(user.id);
+    const role = await this.roleRepository.findOne({
+      where: { id: user.roleId },
+    });
+
     return new ResponseDTO({
       data: {
         access_token: await this.jwtService.signAsync(payload),
@@ -122,12 +134,22 @@ export class AuthService {
         email: user.email,
         username: user.username,
         role: user.roleId,
+        roleName: role.name,
+        roleUsers,
       },
       msgSts: {
         message: 'Login success',
         code: ERROR_CODE.SUCCESS,
       },
     });
+  }
+  async findRoleSingle(id: number) {
+    return await this.userRoleSingleRepository
+      .createQueryBuilder('user_role_single')
+      .andWhere('user_role_single.userId = :userId', {
+        userId: id,
+      })
+      .getMany();
   }
 
   async validateUser(email: string, plainPassword: string): Promise<any> {
