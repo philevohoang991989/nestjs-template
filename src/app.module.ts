@@ -17,6 +17,8 @@ import loggingConfig from './shared/config/logging.config';
 import swaggerConfig from './shared/config/swagger.config';
 import { SharedModule } from './shared/shared.module';
 import { UserModule } from './users/user.module';
+import { ProductsModule } from './products/products.module';
+import { CategorysModule } from './categorys/categorys.module';
 
 @Module({
   imports: [
@@ -63,6 +65,8 @@ import { UserModule } from './users/user.module';
     SharedModule,
     UserModule,
     MailModule,
+    ProductsModule,
+    CategorysModule,
   ],
   controllers: [AppController],
   providers: [AppService],
