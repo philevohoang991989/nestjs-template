@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import * as moment from 'moment';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
@@ -18,7 +18,7 @@ import { ResponseDTO } from 'src/shared/dto/base.dto';
 import { FindQueryDto } from 'src/shared/dto/find-query.dto';
 import { Pagination } from 'src/shared/dto/pagination.dto';
 import { getOrderByClause } from 'src/shared/helpers/query-sort.helper';
-import { Brackets, Repository } from 'typeorm';
+import { Brackets, DataSource, Repository } from 'typeorm';
 import { ActiveUserDTO } from './dto/active-user.dto';
 import { CreateUserRoleDTO } from './dto/create-user-role.dto';
 import { CreateUserDTO } from './dto/create-user.dto';
@@ -34,6 +34,7 @@ export class UserService {
   constructor(
     @InjectRepository(Role) private readonly roleRepository: Repository<Role>,
     @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectDataSource() private readonly dataSource: DataSource,
     @InjectRepository(UserRoles)
     private readonly userRoleRepository: Repository<UserRoles>,
     @Inject(WINSTON_MODULE_NEST_PROVIDER) private readonly logger: Logger,
@@ -462,11 +463,11 @@ export class UserService {
   }
 
   async listRole(): Promise<ResponseDTO> {
-    const qb = this.roleRepository
+    const results = await this.dataSource
+      .getRepository(Role)
       .createQueryBuilder('role')
-      .orderBy('role.id', 'ASC');
-
-    const results = await qb.getMany();
+      .orderBy('role.id', 'ASC')
+      .getMany();
 
     return {
       data: results,
@@ -498,27 +499,41 @@ export class UserService {
 
   async createRole(dtos: CreateUserRoleDTO[]): Promise<ResponseDTO> {
     const userRoles = [];
+
     for (const dto of dtos) {
-      const userRole = new UserRoles();
       const role = await this.role(dto);
-      const userRoleData = await this.findRole(dto);
-      if (userRoleData?.id) {
-        userRole.id = userRoleData.id;
+
+      const existingUserRole = await this.userRoleRepository.findOne({
+        where: {
+          roleId: role.id,
+          screen: dto.screen,
+          manipulation: dto.manipulation,
+        },
+      });
+
+      if (existingUserRole) {
+        existingUserRole.role = dto.role;
+        existingUserRole.isActive = dto.isActive;
+        userRoles.push(existingUserRole);
+      } else {
+        const newUserRole = this.userRoleRepository.create({
+          roleId: role.id,
+          screen: dto.screen,
+          manipulation: dto.manipulation,
+          role: dto.role,
+          isActive: dto.isActive,
+        });
+        userRoles.push(newUserRole);
       }
-      userRole.roleId = role.id;
-      userRole.screen = dto.screen;
-      userRole.manipulation = dto.manipulation;
-      userRole.role = dto.role;
-      userRole.isActive = dto.isActive;
-      userRoles.push(userRole);
     }
 
     const payload = await this.userRoleRepository.save(userRoles);
+
     return {
       data: payload,
       msgSts: {
         code: ERROR_CODE.SUCCESS,
-        message: 'Create location success',
+        message: 'Create role success',
       },
     };
   }
@@ -551,21 +566,24 @@ export class UserService {
       .getOne();
   }
   async createRoleSingle(id: number, dtos: any): Promise<ResponseDTO> {
+    if (!dtos?.dataRoleSend?.length) {
+      throw new BadRequestException('Missing role data');
+    }
     const updateRole = await this.findRoleUserSingle(id);
-    const role = await this.roleRepository.findOne({
-      where: {
-        id: dtos.dataRoleSend[0].role,
-      },
-    });
+
+    const role = await this.dataSource
+      .getRepository(Role)
+      .findOne({ where: { id: dtos.dataRoleSend[0].role } });
+    if (!role) {
+      throw new BadRequestException('Role not found');
+    }
     if (
       updateRole &&
       updateRole.length > 0 &&
       updateRole[0].role != role.name
     ) {
-      for (const role of updateRole) {
-        console.log(role);
-
-        await this.userRoleSingleRepository.softDelete(role.id);
+      for (const r of updateRole) {
+        await this.userRoleSingleRepository.softDelete(r.id);
       }
     }
     const userRoles = [];

@@ -1,17 +1,31 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsStrongPassword } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  IsStrongPassword,
+} from 'class-validator';
 
 export class CreateUserDTO {
-  @ApiProperty()
+  @ApiProperty({ description: 'Tên người dùng', example: 'Nguyễn Văn A' })
+  @IsString()
+  @IsNotEmpty()
   name: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Tên đăng nhập', example: 'nguyenvana' })
+  @IsString()
+  @IsNotEmpty()
   username: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Email người dùng', example: 'a@example.com' })
+  @IsEmail()
   email: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Mật khẩu mạnh',
+    example: 'StrongP@ss123',
+  })
   @IsStrongPassword({
     minLength: 8,
     minLowercase: 1,
@@ -21,6 +35,7 @@ export class CreateUserDTO {
   })
   password: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'ID của role', example: 1 })
+  @IsNumber()
   role: number;
 }

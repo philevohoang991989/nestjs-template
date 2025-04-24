@@ -1,15 +1,23 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsBoolean, IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateUserRoleDTO {
-  @ApiProperty()
+  @ApiProperty({ description: 'Tên màn hình', example: 'UserManagement' })
+  @IsString()
+  @IsNotEmpty()
   screen: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Thao tác', example: 'Create' })
+  @IsString()
+  @IsNotEmpty()
   manipulation: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Tên role', example: 'Admin' })
+  @IsString()
+  @IsNotEmpty()
   role: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Trạng thái active', example: true })
+  @IsBoolean()
   isActive: boolean;
 }

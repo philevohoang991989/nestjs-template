@@ -10,13 +10,14 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { ResponseDTO } from 'src/shared/dto/base.dto';
 import { FindQueryDto } from 'src/shared/dto/find-query.dto';
 import { NormalizeFindQueryPipe } from 'src/shared/pipes/normalize-find-query.pipe';
 import { Logger } from 'winston';
 import { ActiveUserDTO } from './dto/active-user.dto';
+import { CreateRoleArrayDTO } from './dto/create-role-array.dto';
 import { CreateUserRoleDTO } from './dto/create-user-role.dto';
 import { CreateUserDTO } from './dto/create-user.dto';
 import { FilterUserDTO } from './dto/user-filter.dto';
@@ -76,20 +77,25 @@ export class UserController {
     return this.userService.paginationRole(query);
   }
 
-  @Post('pagination-role-group/:id')
+  @Post('group/:id')
   @ApiParam({ name: 'id' })
-  async paginationRoleGroup(@Param('id') id: number) {
+  async getRoleGroup(@Param('id') id: number) {
     return this.userService.paginationRoleGroup(id);
   }
 
-  @Post('list-role')
-  async listRole() {
+  @Get('list-role')
+  async listAllRoles(): Promise<ResponseDTO> {
     return this.userService.listRole();
   }
 
   @Post('create-role')
-  async createRole(@Body() dtos: CreateUserRoleDTO[]): Promise<ResponseDTO> {
-    return this.userService.createRole(dtos);
+  @ApiOperation({ summary: 'Tạo danh sách role thao tác cho hệ thống' })
+  @ApiResponse({
+    status: 200,
+    description: 'Tạo thành công các quyền',
+  })
+  async createRole(@Body() dtos: CreateRoleArrayDTO): Promise<ResponseDTO> {
+    return this.userService.createRole(dtos.roles);
   }
 
   @Get('pagination-role-user/:id')
