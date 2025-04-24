@@ -12,7 +12,7 @@ export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
-    @InjectRepository(Product)
+    @InjectRepository(Category)
     private readonly cateroryRepository: Repository<Category>,
     @InjectRepository(ProductVariant)
     private readonly productVariantRepository: Repository<ProductVariant>,
