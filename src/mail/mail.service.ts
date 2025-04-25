@@ -9,8 +9,8 @@ export class MailService {
   constructor(
     private readonly mailerService: MailerService,
     @Inject(WINSTON_MODULE_NEST_PROVIDER) private readonly logger: Logger,
-    private configService: ConfigService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) { }
   sendWelcomeEmail(loginUrl: string, email: string, password: string) {
     this.logger.debug(`Sending welcome email to ${email}`);
     this.mailerService

@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
-    WinstonModule,
-    utilities as nestWinstonModuleUtilities,
+  WinstonModule,
+  utilities as nestWinstonModuleUtilities,
 } from 'nest-winston';
 import * as winston from 'winston';
 import { AppController } from './app.controller';
@@ -17,8 +17,6 @@ import loggingConfig from './shared/config/logging.config';
 import swaggerConfig from './shared/config/swagger.config';
 import { SharedModule } from './shared/shared.module';
 import { UserModule } from './users/user.module';
-import { ProductsModule } from './products/products.module';
-import { CategorysModule } from './categorys/categorys.module';
 
 @Module({
   imports: [
@@ -65,10 +63,8 @@ import { CategorysModule } from './categorys/categorys.module';
     SharedModule,
     UserModule,
     MailModule,
-    ProductsModule,
-    CategorysModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
