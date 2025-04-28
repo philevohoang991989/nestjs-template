@@ -12,6 +12,6 @@ export class Option {
   @Column()
   value: string;
 
-  @ManyToOne(() => ProductVariant, variant => variant.options)
+  @ManyToOne(() => ProductVariant, (variant) => variant.options)
   productVariant: ProductVariant;
 }
