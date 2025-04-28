@@ -1,4 +1,4 @@
-import { Injectable, Param } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Category } from 'src/category/entities/category.entity';
 import { Repository } from 'typeorm';
@@ -84,37 +84,41 @@ export class ProductService {
     return savedProduct;
   }
 
-  findAll() {
-    return `This action returns all product`;
+  async findAll(): Promise<Product[]> {
+    return this.productRepository.find({
+      relations: ['category', 'productType', 'variants', 'variants.options'],
+      order: {
+        id: 'ASC',
+      },
+    });
   }
 
-  async findOne(@Param('id') id: number) {
-    // const product = await this.productRepository.findOne({
-    //   where: { id },
-    //   relations: [
-    //     'productType',
-    //     'variants',
-    //     'variants.options',
-    //     'variants.options.option',
-    //   ],
-    // });
-    // const variants = await this.variantRepository.find({
-    //   where: { productType: product.productType },
-    //   relations: ['options'],
-    // });
-    // const productVariants = await this.productVariantRepository.find({
-    //   where: { product: { id } },
-    //   relations: ['options', 'options.option'],
-    // });
-    // return {
-    //   product,
-    //   variants,
-    //   productVariants,
-    // };
+  async findOne(id: number): Promise<Product> {
+    const product = await this.productRepository.findOne({
+      where: { id },
+      relations: ['category', 'productType', 'variants', 'variants.options'],
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Product with id ${id} not found`);
+    }
+
+    return product;
   }
 
-  update(id: number, updateProductDto: UpdateProductDto) {
-    return `This action updates a #${id} product`;
+  async update(
+    id: number,
+    updateProductDto: UpdateProductDto,
+  ): Promise<Product> {
+    const product = await this.productRepository.findOne({ where: { id } });
+
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+
+    const updated = Object.assign(product, updateProductDto);
+
+    return this.productRepository.save(updated);
   }
 
   remove(id: number) {
