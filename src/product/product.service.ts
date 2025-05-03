@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Category } from 'src/category/entities/category.entity';
+import { successResponse } from 'src/common/utils/api-response';
 import { Repository } from 'typeorm';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -105,14 +106,18 @@ export class ProductService {
     // 4. Lưu tất cả values
     await this.valueRepo.save(valuesToSave);
 
+    const result = await this.productRepo.findOne({
+      where: { id: savedProduct.id },
+      relations: [
+        'category',
+        'productType',
+        'attributes',
+        'attributes.attribute',
+      ],
+    });
+
     // 5. Trả kết quả
-    return {
-      data: savedProduct,
-      msgSts: {
-        code: 0,
-        message: 'Create product success',
-      },
-    };
+    return successResponse(result, 'Create product success');
   }
 
   async findAll(): Promise<Product[]> {
