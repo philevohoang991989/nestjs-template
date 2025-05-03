@@ -1,46 +1,44 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
-import { Category } from './entities/category.entity';
 
 @Controller('category')
+@ApiTags('Category')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) { }
 
   @Post()
-  create(@Body() createCategoryDto: CreateCategoryDto): Promise<Category> {
-    return this.categoryService.create(createCategoryDto);
+  create(@Body() dto: CreateCategoryDto) {
+    return this.categoryService.create(dto.name, dto.parentId);
   }
 
-  @Get()
-  findAll() {
-    return this.categoryService.findAll();
+  @Get('tree')
+  getTree() {
+    return this.categoryService.getTree();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.categoryService.findOne(+id);
+  @Get(':id/children')
+  getChildren(@Param('id') id: number) {
+    return this.categoryService.getChildren(id);
   }
+
+  @Get(':id/parents')
+  getParent(@Param('id') id: number) {
+    return this.categoryService.getParent(id);
+  }
+
 
   @Patch(':id')
   update(
-    @Param('id') id: string,
-    @Body() updateCategoryDto: UpdateCategoryDto,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateCategoryDto,
   ) {
-    return this.categoryService.update(+id, updateCategoryDto);
+    return this.categoryService.update(id, dto);
   }
-
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.categoryService.remove(+id);
+  delete(@Param('id', ParseIntPipe) id: number) {
+    return this.categoryService.delete(id);
   }
 }

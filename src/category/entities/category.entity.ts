@@ -1,13 +1,15 @@
-import { Product } from 'src/product/entities/product.entity';
 import {
   Column,
+  DeleteDateColumn,
   Entity,
-  ManyToOne,
-  OneToMany,
   PrimaryGeneratedColumn,
+  Tree,
+  TreeChildren,
+  TreeParent,
 } from 'typeorm';
 
-@Entity()
+@Entity({ name: 'categories' })
+@Tree('closure-table') // Closure Table
 export class Category {
   @PrimaryGeneratedColumn()
   id: number;
@@ -15,14 +17,12 @@ export class Category {
   @Column()
   name: string;
 
-  @ManyToOne(() => Category, (category) => category.children, {
-    nullable: true,
-  })
-  parent: Category;
-
-  @OneToMany(() => Category, (category) => category.parent)
+  @TreeChildren()
   children: Category[];
 
-  @OneToMany(() => Product, (product) => product.category)
-  products: Product[];
+  @TreeParent()
+  parent: Category;
+
+  @DeleteDateColumn({ nullable: true })
+  deletedAt?: Date;
 }

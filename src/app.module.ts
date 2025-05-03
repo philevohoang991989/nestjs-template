@@ -18,7 +18,6 @@ import swaggerConfig from './shared/config/swagger.config';
 import { SharedModule } from './shared/shared.module';
 import { UserModule } from './users/user.module';
 import { CategoryModule } from './category/category.module';
-import { ProductModule } from './product/product.module';
 
 @Module({
   imports: [
@@ -66,7 +65,6 @@ import { ProductModule } from './product/product.module';
     UserModule,
     MailModule,
     CategoryModule,
-    ProductModule,
   ],
   controllers: [AppController],
   providers: [AppService],

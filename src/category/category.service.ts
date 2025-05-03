@@ -1,7 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { CreateCategoryDto } from './dto/create-category.dto';
+import { TreeRepository } from 'typeorm';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Category } from './entities/category.entity';
 
@@ -9,78 +8,78 @@ import { Category } from './entities/category.entity';
 export class CategoryService {
   constructor(
     @InjectRepository(Category)
-    private readonly categoryRepository: Repository<Category>,
+    private readonly categoryRepository: TreeRepository<Category>,
   ) { }
-  async create(createCategoryDto: CreateCategoryDto) {
-    const { name, parentId } = createCategoryDto;
+  async create(name: string, parentId?: number) {
+    const category = new Category();
+    category.name = name;
 
-    let parent: Category = null;
     if (parentId) {
-      parent = await this.categoryRepository.findOne({
+      const parent = await this.categoryRepository.findOne({
         where: { id: parentId },
       });
-
-      if (!parent) {
-        throw new NotFoundException(
-          `Parent category with id ${parentId} not found`,
-        );
-      }
+      category.parent = parent;
     }
-
-    const category = this.categoryRepository.create({
-      name,
-      parent,
-    });
 
     return this.categoryRepository.save(category);
   }
 
-  async findAll(): Promise<Category[]> {
-    const categories = await this.categoryRepository.find({
-      relations: ['children'],
-      order: { id: 'ASC' },
-    });
 
-    // Bước 1: Tìm tất cả các id xuất hiện trong children
-    const childIds = new Set<number>();
-    categories.forEach((category) => {
-      category.children?.forEach((child) => {
-        childIds.add(child.id);
-      });
-    });
-
-    // Bước 2: Chỉ giữ lại các category mà id KHÔNG nằm trong childIds
-    const rootCategories = categories.filter(
-      (category) => !childIds.has(category.id),
-    );
-
-    return rootCategories;
+  async getTree(): Promise<Category[]> {
+    return this.categoryRepository.findTrees();
   }
 
-  async findOne(id: number): Promise<Category> {
+  async getChildren(id: number): Promise<Category[]> {
+    const parent = await this.categoryRepository.findOne({
+      where: { id },
+    });
+    return this.categoryRepository.findDescendants(parent);
+  }
+
+  async getParent(id: number): Promise<Category[]> {
+    const node = await this.categoryRepository.findOne({
+      where: { id },
+    });
+    return this.categoryRepository.findAncestors(node);
+  }
+  async update(id: number, dto: UpdateCategoryDto): Promise<Category> {
+    const category = await this.categoryRepository.findOne({ where: { id } });
+    if (!category) throw new Error('Category not found');
+
+    if (dto.name) {
+      category.name = dto.name;
+    }
+
+    if (dto.parentId !== undefined) {
+      if (dto.parentId === null) {
+        category.parent = null;
+      } else {
+        const newParent = await this.categoryRepository.findOne({ where: { id: dto.parentId } });
+        if (!newParent) throw new Error('Parent category not found');
+        category.parent = newParent;
+      }
+    }
+
+    return this.categoryRepository.save(category);
+  }
+
+  async delete(id: number): Promise<void> {
     const category = await this.categoryRepository.findOne({
       where: { id },
-      relations: ['children', 'parent'],
+      relations: ['parent', 'children'],
+      withDeleted: false, // chỉ lấy các bản ghi chưa bị xóa
     });
 
     if (!category) {
-      throw new NotFoundException(`Category with id ${id} not found`);
+      throw new Error('Category not found');
     }
 
-    return category;
-  }
-
-  update(id: number, updateCategoryDto: UpdateCategoryDto) {
-    return `This action updates a #${id} category`;
-  }
-
-  async remove(id: number): Promise<void> {
-    const category = await this.categoryRepository.findOne({ where: { id } });
-
-    if (!category) {
-      throw new NotFoundException(`Category with id ${id} not found`);
+    for (const child of category.children) {
+      child.parent = category.parent ?? null;
+      await this.categoryRepository.save(child);
     }
 
-    await this.categoryRepository.delete(id);
+    await this.categoryRepository.softRemove(category); // soft delete
   }
+
 }

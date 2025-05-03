@@ -1,4 +1,14 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreateCategoryDto } from './create-category.dto';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNumber, IsOptional, IsString } from 'class-validator';
 
-export class UpdateCategoryDto extends PartialType(CreateCategoryDto) {}
+export class UpdateCategoryDto {
+  @ApiPropertyOptional({ description: 'Tên danh mục', example: 'Máy tính bảng' })
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @ApiPropertyOptional({ description: 'ID của danh mục cha', example: 2 })
+  @IsOptional()
+  @IsNumber()
+  parentId?: number;
+}
