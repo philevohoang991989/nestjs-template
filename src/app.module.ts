@@ -9,7 +9,9 @@ import * as winston from 'winston';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { CategoryModule } from './category/category.module';
 import { MailModule } from './mail/mail.module';
+import { ProductModule } from './product/product.module';
 import appConfig from './shared/config/app.config';
 import databaseConfig from './shared/config/database.config';
 import jwtConfig from './shared/config/jwt.config';
@@ -17,8 +19,6 @@ import loggingConfig from './shared/config/logging.config';
 import swaggerConfig from './shared/config/swagger.config';
 import { SharedModule } from './shared/shared.module';
 import { UserModule } from './users/user.module';
-import { CategoryModule } from './category/category.module';
-import { ProductModule } from './product/product.module';
 
 @Module({
   imports: [
