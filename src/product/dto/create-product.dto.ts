@@ -9,24 +9,18 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-class AttributeInput {
-  @IsNumber()
-  attributeId: number;
-
-  @IsString()
-  value: string;
-}
-
+// Dùng khi client muốn tạo attribute mới
 class AttributeDto {
-  @ApiProperty({ description: 'Tên thuộc tính', example: 'Color' })
+  @ApiProperty({ description: 'Tên thuộc tính', example: 'Size' })
   @IsNotEmpty()
   @IsString()
   name: string;
 }
 
+// Đại diện cho mỗi thuộc tính sản phẩm
 class ProductAttributeDto {
   @ApiPropertyOptional({
-    description: 'ID của thuộc tính đã tồn tại',
+    description: 'ID thuộc tính nếu đã tồn tại',
     example: 1,
   })
   @IsOptional()
@@ -34,7 +28,8 @@ class ProductAttributeDto {
   attributeId?: number;
 
   @ApiPropertyOptional({
-    description: 'Thông tin thuộc tính mới (nếu chưa có attributeId)',
+    description: 'Thông tin thuộc tính mới nếu attributeId không có',
+    type: AttributeDto,
   })
   @IsOptional()
   @ValidateNested()
@@ -47,6 +42,7 @@ class ProductAttributeDto {
   value: string;
 }
 
+// DTO chính cho tạo sản phẩm
 export class CreateProductDto {
   @ApiProperty({ description: 'Tên sản phẩm', example: 'iPhone 16' })
   @IsNotEmpty()
@@ -58,7 +54,7 @@ export class CreateProductDto {
   @IsString()
   description?: string;
 
-  @ApiProperty({ description: 'ID danh mục', example: 1 })
+  @ApiProperty({ description: 'ID danh mục sản phẩm', example: 1 })
   @IsNotEmpty()
   @IsNumber()
   categoryId: number;
@@ -70,7 +66,11 @@ export class CreateProductDto {
 
   @ApiProperty({
     type: [ProductAttributeDto],
-    description: 'Danh sách thuộc tính sản phẩm',
+    description: 'Danh sách thuộc tính của sản phẩm',
+    example: [
+      { attributeId: 1, value: 'Red' },
+      { attribute: { name: 'Size' }, value: 'M' },
+    ],
   })
   @IsArray()
   @ValidateNested({ each: true })
