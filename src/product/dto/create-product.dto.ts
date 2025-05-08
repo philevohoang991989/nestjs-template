@@ -76,4 +76,12 @@ export class CreateProductDto {
   @ValidateNested({ each: true })
   @Type(() => ProductAttributeDto)
   attributes: ProductAttributeDto[];
+
+  @ApiPropertyOptional({
+    type: 'string',
+    format: 'binary',
+    isArray: true,
+    description: 'Upload nhiều hình ảnh cho sản phẩm',
+  })
+  images?: string[]; // không cần validate vì được set sau từ file
 }

@@ -7,6 +7,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { ProductAttributeValue } from './product-attribute-value.entity';
+import { ProductImage } from './product-image.entity';
 import { ProductType } from './product-type.entity';
 
 @Entity({ name: 'products' })
@@ -34,4 +35,9 @@ export class Product {
     cascade: true,
   })
   attributes: ProductAttributeValue[];
+
+  @OneToMany(() => ProductImage, (image) => image.product, {
+    cascade: true,
+  })
+  images: ProductImage[];
 }

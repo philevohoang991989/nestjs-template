@@ -6,8 +6,13 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFiles,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { ApiTags } from '@nestjs/swagger';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductService } from './product.service';
@@ -18,8 +23,37 @@ export class ProductController {
   constructor(private readonly productService: ProductService) { }
 
   @Post()
-  create(@Body() createProductDto: CreateProductDto) {
-    return this.productService.create(createProductDto);
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'images', maxCount: 5 }, // upload nhiều ảnh
+      ],
+      {
+        storage: diskStorage({
+          destination: './uploads/products', // thư mục lưu ảnh
+          filename: (req, file, cb) => {
+            const uniqueSuffix =
+              Date.now() + '-' + Math.round(Math.random() * 1e9);
+            cb(null, `${uniqueSuffix}${extname(file.originalname)}`);
+          },
+        }),
+      },
+    ),
+  )
+  create(
+    @Body() createProductDto: CreateProductDto,
+    @UploadedFiles()
+    files: {
+      images?: Express.Multer.File[];
+    },
+  ) {
+    const imagePaths = files?.images?.map(
+      (file) => `/uploads/products/${file.filename}`,
+    );
+    return this.productService.create({
+      ...createProductDto,
+      images: imagePaths || [],
+    });
   }
 
   @Get()

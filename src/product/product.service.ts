@@ -7,6 +7,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductAttributeValue } from './entities/product-attribute-value.entity';
 import { ProductAttribute } from './entities/product-attribute.entity';
+import { ProductImage } from './entities/product-image.entity';
 import { ProductType } from './entities/product-type.entity';
 import { Product } from './entities/product.entity';
 
@@ -23,6 +24,8 @@ export class ProductService {
 
     @InjectRepository(ProductType)
     private readonly typeRepo: Repository<ProductType>,
+    @InjectRepository(ProductImage)
+    private readonly imageRepo: Repository<ProductImage>,
 
     @InjectRepository(ProductAttributeValue)
     private readonly valueRepo: Repository<ProductAttributeValue>,
@@ -106,6 +109,17 @@ export class ProductService {
     // 4. Lưu tất cả values
     await this.valueRepo.save(valuesToSave);
 
+    // 5. Lưu hình ảnh nếu có
+    if (dto.images && dto.images.length > 0) {
+      const imagesToSave = dto.images.map((url, index) =>
+        this.imageRepo.create({
+          url,
+          product: savedProduct,
+          isThumbnail: index === 0, // Ảnh đầu tiên làm avatar
+        }),
+      );
+      await this.imageRepo.save(imagesToSave);
+    }
     const result = await this.productRepo.findOne({
       where: { id: savedProduct.id },
       relations: [
@@ -113,10 +127,11 @@ export class ProductService {
         'productType',
         'attributes',
         'attributes.attribute',
+        'images',
       ],
     });
 
-    // 5. Trả kết quả
+    // 6. Trả kết quả
     return successResponse(result, 'Create product success');
   }
 

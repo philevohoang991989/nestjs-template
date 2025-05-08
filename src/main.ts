@@ -1,17 +1,23 @@
-import { NestApplication, NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { BadRequestException, Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { NestApplication, NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
-import { BadRequestException, Logger, ValidationPipe } from '@nestjs/common';
+import { join } from 'path';
+import { AppModule } from './app.module';
 import { AppConfig } from './shared/config/app.config';
-import { HttpLoggingInterceptor } from './shared/interceptor/http-logging.interceptor';
 import { SwaggerConfig } from './shared/config/swagger.config';
+import { HttpLoggingInterceptor } from './shared/interceptor/http-logging.interceptor';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
     cors: true,
+  });
+  // Cho phép truy cập ảnh tĩnh
+  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+    prefix: '/uploads',
   });
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   app.useGlobalPipes(
