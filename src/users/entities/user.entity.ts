@@ -1,9 +1,11 @@
+import { Order } from 'src/order/entities/order.entity';
 import { BaseEntity } from 'src/shared/entity/base.entity';
 import {
   Column,
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Role } from './role.entity';
@@ -80,4 +82,7 @@ export class User extends BaseEntity {
     nullable: true,
   })
   blockAt: Date;
+
+  @OneToMany(() => Order, (order) => order.user)
+  orders: Order[];
 }

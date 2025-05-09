@@ -1,4 +1,5 @@
 import { Category } from 'src/category/entities/category.entity';
+import { OrderItem } from 'src/order/entities/order-item.entity';
 import {
   Column,
   Entity,
@@ -22,11 +23,17 @@ export class Product {
   @Column({ nullable: true })
   description: string;
 
+  @Column('int', { default: 0 })
+  stock: number;
+
   @ManyToOne(() => Category, (category) => category.products, {
     nullable: false,
     onDelete: 'CASCADE',
   })
   category: Category;
+
+  @Column('decimal', { precision: 10, scale: 2 })
+  price: number;
 
   @ManyToOne(() => ProductType)
   productType: ProductType;
@@ -40,4 +47,7 @@ export class Product {
     cascade: true,
   })
   images: ProductImage[];
+
+  @OneToMany(() => OrderItem, (item) => item.product)
+  orderItems: OrderItem[];
 }
